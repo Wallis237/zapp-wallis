@@ -139,11 +139,27 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
 
   if (!currentUserId) {
     return (
-      <div className="flex-1 flex items-center justify-center chat-gradient">
-        <div className="text-center">
-          <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Please log in to chat</h2>
-          <p className="text-muted-foreground">You need to be authenticated to use the chat</p>
+      <div className="flex-1 flex flex-col">
+        {/* Header with menu button */}
+        <div className="p-4 border-b border-border bg-white flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onToggleSidebar}
+            className="text-primary"
+          >
+            <Menu className="w-6 h-6" />
+          </Button>
+          <h1 className="text-lg font-semibold">Chat App</h1>
+          <div className="w-10"></div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center chat-gradient">
+          <div className="text-center">
+            <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Please log in to chat</h2>
+            <p className="text-muted-foreground">You need to be authenticated to use the chat</p>
+          </div>
         </div>
       </div>
     );
@@ -151,11 +167,30 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
 
   if (!chatId) {
     return (
-      <div className="flex-1 flex items-center justify-center chat-gradient">
-        <div className="text-center">
-          <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-          <h2 className="text-xl font-semibold mb-2">Welcome to Chat App</h2>
-          <p className="text-muted-foreground">Select a conversation to start chatting</p>
+      <div className="flex-1 flex flex-col">
+        {/* Header with menu button */}
+        <div className="p-4 border-b border-border bg-white flex items-center justify-between">
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={onToggleSidebar}
+            className="text-primary"
+          >
+            <Menu className="w-6 h-6" />
+          </Button>
+          <h1 className="text-lg font-semibold">Chat App</h1>
+          <div className="w-10"></div>
+        </div>
+        
+        <div className="flex-1 flex items-center justify-center chat-gradient">
+          <div className="text-center">
+            <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+            <h2 className="text-xl font-semibold mb-2">Welcome to Chat App</h2>
+            <p className="text-muted-foreground mb-4">Select a conversation to start chatting</p>
+            <Button onClick={onToggleSidebar} className="bg-primary text-white">
+              Browse Users
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -170,7 +205,6 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
             variant="ghost" 
             size="icon"
             onClick={onToggleSidebar}
-            className="lg:hidden"
           >
             <Menu className="w-5 h-5" />
           </Button>
