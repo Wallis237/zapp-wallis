@@ -1,138 +1,156 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Phone, Video, MoreVertical, Menu } from 'lucide-react';
+import { Phone, Video, MoreVertical, Menu, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface Message {
   id: string;
-  text: string;
-  isSent: boolean;
-  timestamp: Date;
-  senderName?: string;
+  content: string;
+  sender_id: string;
+  receiver_id: string;
+  created_at: string;
+  sender?: {
+    display_name: string;
+    username: string;
+  };
 }
 
 interface ChatAreaProps {
   chatId?: string;
   onToggleSidebar: () => void;
+  currentUserId?: string;
 }
 
-const mockMessages: Record<string, Message[]> = {
-  '1': [
-    {
-      id: '1',
-      text: 'Hey! How are you doing today?',
-      isSent: false,
-      timestamp: new Date(Date.now() - 1000 * 60 * 5),
-      senderName: 'Alice Johnson'
-    },
-    {
-      id: '2',
-      text: "I'm doing great, thanks! Just working on some new projects. How about you?",
-      isSent: true,
-      timestamp: new Date(Date.now() - 1000 * 60 * 4)
-    },
-    {
-      id: '3',
-      text: "That's awesome! I'd love to hear more about your projects.",
-      isSent: false,
-      timestamp: new Date(Date.now() - 1000 * 60 * 2),
-      senderName: 'Alice Johnson'
-    }
-  ],
-  '2': [
-    {
-      id: '1',
-      text: 'Thanks for your help yesterday!',
-      isSent: false,
-      timestamp: new Date(Date.now() - 1000 * 60 * 60),
-      senderName: 'Bob Smith'
-    },
-    {
-      id: '2',
-      text: 'No problem at all! Happy to help.',
-      isSent: true,
-      timestamp: new Date(Date.now() - 1000 * 60 * 55)
-    }
-  ],
-  '3': [
-    {
-      id: '1',
-      text: 'Meeting starts in 10 minutes',
-      isSent: false,
-      timestamp: new Date(Date.now() - 1000 * 60 * 180),
-      senderName: 'Sarah Wilson'
-    },
-    {
-      id: '2',
-      text: 'Thanks for the reminder!',
-      isSent: true,
-      timestamp: new Date(Date.now() - 1000 * 60 * 178)
-    },
-    {
-      id: '3',
-      text: 'See you all there!',
-      isSent: false,
-      timestamp: new Date(Date.now() - 1000 * 60 * 175),
-      senderName: 'Mike Davis'
-    }
-  ]
-};
-
-const chatInfo = {
-  '1': { name: 'Alice Johnson', isOnline: true, isGroup: false },
-  '2': { name: 'Bob Smith', isOnline: false, isGroup: false },
-  '3': { name: 'Team Chat', isOnline: true, isGroup: true },
-  '4': { name: 'Sarah Wilson', isOnline: true, isGroup: false },
-  '5': { name: 'Design Team', isOnline: false, isGroup: true }
-};
-
-export function ChatArea({ chatId, onToggleSidebar }: ChatAreaProps) {
+export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
-  const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [chatPartner, setChatPartner] = useState<any>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-  const currentChat = chatId ? chatInfo[chatId as keyof typeof chatInfo] : null;
+  const { toast } = useToast();
 
   useEffect(() => {
-    if (chatId && mockMessages[chatId]) {
-      setMessages(mockMessages[chatId]);
-    } else {
-      setMessages([]);
+    if (chatId && currentUserId) {
+      fetchMessages();
+      fetchChatPartner();
     }
-  }, [chatId]);
+  }, [chatId, currentUserId]);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSendMessage = (text: string) => {
+  // Subscribe to real-time message updates
+  useEffect(() => {
+    if (!chatId || !currentUserId) return;
+
+    const channel = supabase
+      .channel('messages')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'messages',
+          filter: `or(and(sender_id.eq.${currentUserId},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${currentUserId}))`
+        },
+        (payload) => {
+          const newMessage = payload.new as Message;
+          setMessages(prev => [...prev, newMessage]);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [chatId, currentUserId]);
+
+  const fetchMessages = async () => {
+    if (!chatId || !currentUserId) return;
+
+    setIsLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('messages')
+        .select(`
+          *,
+          sender:sender_id(display_name, username)
+        `)
+        .or(
+          `and(sender_id.eq.${currentUserId},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${currentUserId})`
+        )
+        .order('created_at', { ascending: true });
+
+      if (error) throw error;
+      setMessages(data || []);
+    } catch (error) {
+      console.error('Error fetching messages:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const fetchChatPartner = async () => {
     if (!chatId) return;
 
-    const newMessage: Message = {
-      id: Date.now().toString(),
-      text,
-      isSent: true,
-      timestamp: new Date()
-    };
+    try {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', chatId)
+        .single();
 
-    setMessages(prev => [...prev, newMessage]);
-
-    // Simulate typing indicator and response
-    setIsTyping(true);
-    setTimeout(() => {
-      setIsTyping(false);
-      const responseMessage: Message = {
-        id: (Date.now() + 1).toString(),
-        text: "Thanks for your message! This is a demo response.",
-        isSent: false,
-        timestamp: new Date(),
-        senderName: currentChat?.name
-      };
-      setMessages(prev => [...prev, responseMessage]);
-    }, 2000);
+      if (error) throw error;
+      setChatPartner(data);
+    } catch (error) {
+      console.error('Error fetching chat partner:', error);
+    }
   };
+
+  const handleSendMessage = async (content: string) => {
+    if (!chatId || !currentUserId || !content.trim()) return;
+
+    try {
+      const { error } = await supabase
+        .from('messages')
+        .insert({
+          sender_id: currentUserId,
+          receiver_id: chatId,
+          content: content.trim()
+        });
+
+      if (error) throw error;
+    } catch (error) {
+      console.error('Error sending message:', error);
+      toast({
+        title: "Error",
+        description: "Failed to send message",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (!currentUserId) {
+    return (
+      <div className="flex-1 flex items-center justify-center chat-gradient">
+        <div className="text-center">
+          <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Please log in to chat</h2>
+          <p className="text-muted-foreground">You need to be authenticated to use the chat</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!chatId) {
     return (
@@ -162,19 +180,20 @@ export function ChatArea({ chatId, onToggleSidebar }: ChatAreaProps) {
           
           <div className="relative">
             <Avatar className="w-10 h-10">
+              <AvatarImage src={chatPartner?.avatar_url} />
               <AvatarFallback className="bg-primary text-primary-foreground">
-                {currentChat?.name.split(' ').map(n => n[0]).join('')}
+                {chatPartner?.display_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
               </AvatarFallback>
             </Avatar>
-            {currentChat?.isOnline && (
+            {chatPartner?.is_online && (
               <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-chat-online border-2 border-white rounded-full" />
             )}
           </div>
           
           <div>
-            <h2 className="font-semibold">{currentChat?.name}</h2>
+            <h2 className="font-semibold">{chatPartner?.display_name || 'Unknown User'}</h2>
             <p className="text-xs text-muted-foreground">
-              {currentChat?.isOnline ? 'Online' : 'Last seen recently'}
+              {chatPartner?.is_online ? 'Online' : 'Last seen recently'}
             </p>
           </div>
         </div>
@@ -195,27 +214,21 @@ export function ChatArea({ chatId, onToggleSidebar }: ChatAreaProps) {
       {/* Messages Area */}
       <div className="flex-1 overflow-y-auto p-4 chat-gradient">
         <div className="max-w-4xl mx-auto">
-          {messages.map((message) => (
-            <MessageBubble
-              key={message.id}
-              message={message.text}
-              isSent={message.isSent}
-              timestamp={message.timestamp}
-              senderName={message.senderName}
-              isGroupChat={currentChat?.isGroup}
-            />
-          ))}
-          
-          {isTyping && (
-            <div className="flex justify-start mb-4">
-              <div className="message-received px-4 py-2 rounded-lg max-w-xs">
-                <div className="flex items-center gap-1">
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full typing-indicator" style={{ animationDelay: '0ms' }} />
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full typing-indicator" style={{ animationDelay: '200ms' }} />
-                  <div className="w-2 h-2 bg-muted-foreground rounded-full typing-indicator" style={{ animationDelay: '400ms' }} />
-                </div>
-              </div>
+          {isLoading ? (
+            <div className="flex justify-center items-center h-32">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
             </div>
+          ) : (
+            messages.map((message) => (
+              <MessageBubble
+                key={message.id}
+                message={message.content}
+                isSent={message.sender_id === currentUserId}
+                timestamp={new Date(message.created_at)}
+                senderName={message.sender?.display_name}
+                isGroupChat={false}
+              />
+            ))
           )}
           
           <div ref={messagesEndRef} />
