@@ -22,7 +22,7 @@ const Index = () => {
         setUser(session?.user ?? null);
         
         if (session?.user) {
-          // Fetch user profile after authentication
+          // Defer profile fetch to avoid deadlock
           setTimeout(() => {
             fetchUserProfile(session.user.id);
           }, 0);
@@ -85,6 +85,12 @@ const Index = () => {
     // Auth success will be handled by the onAuthStateChange listener
   };
 
+  const handleProfileUpdate = () => {
+    if (user?.id) {
+      fetchUserProfile(user.id);
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -106,6 +112,7 @@ const Index = () => {
         onChatSelect={handleChatSelect}
         currentUser={userProfile}
         onLogout={handleLogout}
+        onProfileUpdate={handleProfileUpdate}
       />
       <ChatArea 
         chatId={selectedChatId}

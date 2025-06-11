@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MessageCircle } from 'lucide-react';
+import { MessageCircle, Eye, EyeOff, Upload } from 'lucide-react';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -17,8 +17,40 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [password, setPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
+  const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
+  const [profilePhotoPreview, setProfilePhotoPreview] = useState<string>('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setProfilePhoto(file);
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setProfilePhotoPreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadProfilePhoto = async (userId: string, file: File) => {
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from('avatars')
+      .upload(fileName, file, { upsert: true });
+
+    if (uploadError) throw uploadError;
+
+    const { data } = supabase.storage
+      .from('avatars')
+      .getPublicUrl(fileName);
+
+    return data.publicUrl;
+  };
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -41,7 +73,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         });
         onAuthSuccess();
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -54,10 +86,26 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         });
         
         if (error) throw error;
+
+        // Upload profile photo if provided
+        if (data.user && profilePhoto) {
+          try {
+            const avatarUrl = await uploadProfilePhoto(data.user.id, profilePhoto);
+            
+            // Update profile with avatar URL
+            await supabase
+              .from('profiles')
+              .update({ avatar_url: avatarUrl })
+              .eq('id', data.user.id);
+          } catch (uploadError) {
+            console.error('Error uploading profile photo:', uploadError);
+            // Don't fail the signup for photo upload issues
+          }
+        }
         
         toast({
           title: "Success",
-          description: "Account created! Please check your email to verify your account."
+          description: "Account created successfully!"
         });
       }
     } catch (error: any) {
@@ -105,13 +153,24 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
             
             <div className="space-y-2">
               <label className="text-sm font-medium">Password</label>
-              <Input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
-                required
-              />
+              <div className="relative">
+                <Input
+                  type={showPassword ? 'text' : 'password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  required
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                  onClick={() => setShowPassword(!showPassword)}
+                >
+                  {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                </Button>
+              </div>
             </div>
             
             {!isLogin && (
@@ -134,6 +193,31 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     onChange={(e) => setDisplayName(e.target.value)}
                     placeholder="Your display name"
                   />
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-sm font-medium">Profile Photo</label>
+                  <div className="flex items-center gap-4">
+                    {profilePhotoPreview && (
+                      <img 
+                        src={profilePhotoPreview} 
+                        alt="Profile preview" 
+                        className="w-12 h-12 rounded-full object-cover"
+                      />
+                    )}
+                    <label className="cursor-pointer">
+                      <div className="flex items-center gap-2 px-3 py-2 border border-input rounded-md hover:bg-accent">
+                        <Upload className="w-4 h-4" />
+                        <span className="text-sm">Upload Photo</span>
+                      </div>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        onChange={handleProfilePhotoChange}
+                        className="hidden"
+                      />
+                    </label>
+                  </div>
                 </div>
               </>
             )}

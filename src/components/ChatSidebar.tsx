@@ -4,6 +4,7 @@ import { Users, MessageCircle, Settings, Search, Menu, X, LogOut } from 'lucide-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { ProfileUpload } from './ProfileUpload';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -23,6 +24,7 @@ interface ChatSidebarProps {
   onChatSelect: (chatId: string) => void;
   currentUser?: any;
   onLogout: () => void;
+  onProfileUpdate?: () => void;
 }
 
 export function ChatSidebar({ 
@@ -31,7 +33,8 @@ export function ChatSidebar({
   selectedChatId, 
   onChatSelect, 
   currentUser,
-  onLogout 
+  onLogout,
+  onProfileUpdate 
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<Profile[]>([]);
@@ -129,14 +132,12 @@ export function ChatSidebar({
           </div>
 
           {currentUser && (
-            <div className="flex items-center gap-3 mb-4 p-2 bg-muted rounded-lg">
-              <Avatar className="w-8 h-8">
-                <AvatarImage src={currentUser.avatar_url} />
-                <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                  {currentUser.display_name?.split(' ').map((n: string) => n[0]).join('') || '?'}
-                </AvatarFallback>
-              </Avatar>
-              <div className="flex-1 min-w-0">
+            <div className="mb-4 p-3 bg-muted rounded-lg">
+              <ProfileUpload 
+                currentUser={currentUser} 
+                onProfileUpdate={onProfileUpdate || (() => {})} 
+              />
+              <div className="mt-2">
                 <p className="text-sm font-medium truncate">{currentUser.display_name}</p>
                 <p className="text-xs text-muted-foreground truncate">@{currentUser.username}</p>
               </div>

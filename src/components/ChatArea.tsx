@@ -77,10 +77,7 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
     try {
       const { data, error } = await supabase
         .from('messages')
-        .select(`
-          *,
-          sender:sender_id(display_name, username)
-        `)
+        .select('*')
         .or(
           `and(sender_id.eq.${currentUserId},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${currentUserId})`
         )
