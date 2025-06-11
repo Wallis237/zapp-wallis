@@ -56,11 +56,18 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
           event: 'INSERT',
           schema: 'public',
           table: 'messages',
-          filter: `or(and(sender_id.eq.${currentUserId},receiver_id.eq.${chatId}),and(sender_id.eq.${chatId},receiver_id.eq.${currentUserId}))`
         },
         (payload) => {
           const newMessage = payload.new as Message;
-          setMessages(prev => [...prev, newMessage]);
+          // Only add message if it's part of this conversation
+          if ((newMessage.sender_id === currentUserId && newMessage.receiver_id === chatId) ||
+              (newMessage.sender_id === chatId && newMessage.receiver_id === currentUserId)) {
+            setMessages(prev => {
+              // Avoid duplicates
+              if (prev.find(m => m.id === newMessage.id)) return prev;
+              return [...prev, newMessage];
+            });
+          }
         }
       )
       .subscribe();
@@ -118,15 +125,20 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
     if (!chatId || !currentUserId || !content.trim()) return;
 
     try {
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('messages')
         .insert({
           sender_id: currentUserId,
           receiver_id: chatId,
           content: content.trim()
-        });
+        })
+        .select()
+        .single();
 
       if (error) throw error;
+      
+      // The real-time subscription will handle adding the message to the UI
+      console.log('Message sent successfully:', data);
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
@@ -135,6 +147,20 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
         variant: "destructive"
       });
     }
+  };
+
+  const handleVoiceCall = () => {
+    toast({
+      title: "Voice Call",
+      description: `Starting voice call with ${chatPartner?.display_name}...`
+    });
+  };
+
+  const handleVideoCall = () => {
+    toast({
+      title: "Video Call", 
+      description: `Starting video call with ${chatPartner?.display_name}...`
+    });
   };
 
   if (!currentUserId) {
@@ -230,10 +256,10 @@ export function ChatArea({ chatId, onToggleSidebar, currentUserId }: ChatAreaPro
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={handleVoiceCall}>
             <Phone className="w-5 h-5" />
           </Button>
-          <Button variant="ghost" size="icon">
+          <Button variant="ghost" size="icon" onClick={handleVideoCall}>
             <Video className="w-5 h-5" />
           </Button>
           <Button variant="ghost" size="icon">

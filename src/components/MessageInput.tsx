@@ -1,8 +1,11 @@
 
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { Send, Paperclip, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
+import { EmojiPicker } from './EmojiPicker';
+import { FileUpload } from './FileUpload';
+import { useToast } from '@/hooks/use-toast';
 
 interface MessageInputProps {
   onSendMessage: (message: string) => void;
@@ -11,12 +14,17 @@ interface MessageInputProps {
 
 export function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
   const [message, setMessage] = useState('');
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [showFileUpload, setShowFileUpload] = useState(false);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (message.trim() && !disabled) {
       onSendMessage(message.trim());
       setMessage('');
+      setShowEmojiPicker(false);
     }
   };
 
@@ -27,11 +35,56 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
     }
   };
 
+  const handleEmojiSelect = (emoji: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const start = textarea.selectionStart;
+      const end = textarea.selectionEnd;
+      const newMessage = message.slice(0, start) + emoji + message.slice(end);
+      setMessage(newMessage);
+      
+      // Reset cursor position after emoji
+      setTimeout(() => {
+        textarea.focus();
+        textarea.setSelectionRange(start + emoji.length, start + emoji.length);
+      }, 0);
+    } else {
+      setMessage(prev => prev + emoji);
+    }
+  };
+
+  const handleFileSelect = (file: File) => {
+    toast({
+      title: "File Selected",
+      description: `Selected file: ${file.name}. File sharing will be implemented soon.`
+    });
+    setShowFileUpload(false);
+  };
+
   return (
-    <div className="p-4 border-t border-border bg-white">
+    <div className="p-4 border-t border-border bg-white relative">
+      {showEmojiPicker && (
+        <div className="absolute bottom-16 right-4 z-10">
+          <EmojiPicker 
+            onEmojiSelect={handleEmojiSelect}
+            onClose={() => setShowEmojiPicker(false)}
+          />
+        </div>
+      )}
+      
+      {showFileUpload && (
+        <div className="absolute bottom-16 right-4 z-10">
+          <FileUpload
+            onFileSelect={handleFileSelect}
+            onClose={() => setShowFileUpload(false)}
+          />
+        </div>
+      )}
+
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <div className="flex-1 relative">
           <Textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -46,6 +99,7 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowFileUpload(!showFileUpload)}
             >
               <Paperclip className="w-4 h-4" />
             </Button>
@@ -54,6 +108,7 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
               variant="ghost"
               size="icon"
               className="h-8 w-8 text-muted-foreground hover:text-foreground"
+              onClick={() => setShowEmojiPicker(!showEmojiPicker)}
             >
               <Smile className="w-4 h-4" />
             </Button>

@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { ProfileUpload } from './ProfileUpload';
+import { SettingsModal } from './SettingsModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -39,6 +40,7 @@ export function ChatSidebar({
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<Profile[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -83,6 +85,13 @@ export function ChatSidebar({
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${Math.floor(diffInHours)}h`;
     return `${Math.floor(diffInHours / 24)}d`;
+  };
+
+  const handleProfileUpdateSuccess = () => {
+    if (onProfileUpdate) {
+      onProfileUpdate();
+    }
+    fetchUsers(); // Refresh users list to show updated profile
   };
 
   return (
@@ -135,7 +144,7 @@ export function ChatSidebar({
             <div className="mb-4 p-3 bg-muted rounded-lg">
               <ProfileUpload 
                 currentUser={currentUser} 
-                onProfileUpdate={onProfileUpdate || (() => {})} 
+                onProfileUpdate={handleProfileUpdateSuccess} 
               />
               <div className="mt-2">
                 <p className="text-sm font-medium truncate">{currentUser.display_name}</p>
@@ -210,15 +219,23 @@ export function ChatSidebar({
         {/* Footer */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={fetchUsers} title="Refresh Users">
               <Users className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon">
+            <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Settings">
               <Settings className="w-5 h-5" />
             </Button>
           </div>
         </div>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        currentUser={currentUser}
+        onProfileUpdate={handleProfileUpdateSuccess}
+      />
     </>
   );
 }
