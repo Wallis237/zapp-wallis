@@ -1,34 +1,59 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileUpload } from './ProfileUpload';
+import { WallpaperSlideshow } from './WallpaperSlideshow';
 
 interface SettingsModalProps {
   isOpen: boolean;
   onClose: () => void;
   currentUser: any;
   onProfileUpdate: () => void;
+  onThemeChange: (theme: string) => void;
+  onWallpaperChange: (index: number) => void;
+  userPreferences: any;
 }
 
-export function SettingsModal({ isOpen, onClose, currentUser, onProfileUpdate }: SettingsModalProps) {
+export function SettingsModal({ 
+  isOpen, 
+  onClose, 
+  currentUser, 
+  onProfileUpdate,
+  onThemeChange,
+  onWallpaperChange,
+  userPreferences
+}: SettingsModalProps) {
   const [displayName, setDisplayName] = useState(currentUser?.display_name || '');
   const [username, setUsername] = useState(currentUser?.username || '');
   const [isOnline, setIsOnline] = useState(currentUser?.is_online || false);
+  const [language, setLanguage] = useState(userPreferences?.language || 'en');
+  const [theme, setTheme] = useState(userPreferences?.theme || 'light');
+  const [wallpaperIndex, setWallpaperIndex] = useState(userPreferences?.wallpaper_index || 0);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (userPreferences) {
+      setLanguage(userPreferences.language || 'en');
+      setTheme(userPreferences.theme || 'light');
+      setWallpaperIndex(userPreferences.wallpaper_index || 0);
+    }
+  }, [userPreferences]);
 
   const handleSave = async () => {
     if (!currentUser?.id) return;
 
     setIsLoading(true);
     try {
-      const { error } = await supabase
+      // Update profile
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           display_name: displayName.trim(),
@@ -38,20 +63,35 @@ export function SettingsModal({ isOpen, onClose, currentUser, onProfileUpdate }:
         })
         .eq('id', currentUser.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Update or create user preferences
+      const { error: prefsError } = await supabase
+        .from('user_preferences')
+        .upsert({
+          user_id: currentUser.id,
+          language,
+          theme,
+          wallpaper_index: wallpaperIndex,
+          updated_at: new Date().toISOString()
+        });
+
+      if (prefsError) throw prefsError;
 
       toast({
         title: "Success",
-        description: "Profile updated successfully!"
+        description: "Settings updated successfully!"
       });
 
       onProfileUpdate();
+      onThemeChange(theme);
+      onWallpaperChange(wallpaperIndex);
       onClose();
     } catch (error: any) {
-      console.error('Error updating profile:', error);
+      console.error('Error updating settings:', error);
       toast({
         title: "Error",
-        description: error.message || "Failed to update profile",
+        description: error.message || "Failed to update settings",
         variant: "destructive"
       });
     } finally {
@@ -59,9 +99,13 @@ export function SettingsModal({ isOpen, onClose, currentUser, onProfileUpdate }:
     }
   };
 
+  const handleWallpaperSelect = (index: number) => {
+    setWallpaperIndex(index);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Settings</DialogTitle>
         </DialogHeader>
@@ -97,6 +141,47 @@ export function SettingsModal({ isOpen, onClose, currentUser, onProfileUpdate }:
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               placeholder="Enter your username"
+            />
+          </div>
+
+          {/* Language */}
+          <div className="space-y-2">
+            <Label>Language</Label>
+            <Select value={language} onValueChange={setLanguage}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select language" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="en">English</SelectItem>
+                <SelectItem value="es">Español</SelectItem>
+                <SelectItem value="fr">Français</SelectItem>
+                <SelectItem value="de">Deutsch</SelectItem>
+                <SelectItem value="it">Italiano</SelectItem>
+                <SelectItem value="pt">Português</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Theme */}
+          <div className="space-y-2">
+            <Label>Theme</Label>
+            <Select value={theme} onValueChange={setTheme}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select theme" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="light">Light</SelectItem>
+                <SelectItem value="dark">Dark</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Wallpaper Selection */}
+          <div className="space-y-2">
+            <Label>Chat Wallpaper</Label>
+            <WallpaperSlideshow 
+              wallpaperIndex={wallpaperIndex}
+              onWallpaperChange={handleWallpaperSelect}
             />
           </div>
 

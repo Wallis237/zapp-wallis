@@ -5,19 +5,18 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { EmojiPicker } from './EmojiPicker';
 import { FileUpload } from './FileUpload';
-import { useToast } from '@/hooks/use-toast';
 
 interface MessageInputProps {
-  onSendMessage: (message: string) => void;
+  onSendMessage: (message: string, fileUrl?: string, fileType?: string, fileName?: string) => void;
   disabled?: boolean;
+  currentUserId?: string;
 }
 
-export function MessageInput({ onSendMessage, disabled = false }: MessageInputProps) {
+export function MessageInput({ onSendMessage, disabled = false, currentUserId }: MessageInputProps) {
   const [message, setMessage] = useState('');
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const { toast } = useToast();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -43,7 +42,6 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
       const newMessage = message.slice(0, start) + emoji + message.slice(end);
       setMessage(newMessage);
       
-      // Reset cursor position after emoji
       setTimeout(() => {
         textarea.focus();
         textarea.setSelectionRange(start + emoji.length, start + emoji.length);
@@ -53,11 +51,8 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
     }
   };
 
-  const handleFileSelect = (file: File) => {
-    toast({
-      title: "File Selected",
-      description: `Selected file: ${file.name}. File sharing will be implemented soon.`
-    });
+  const handleFileSelect = (file: File, fileUrl: string, fileType: string, fileName: string) => {
+    onSendMessage(`📎 ${fileName}`, fileUrl, fileType, fileName);
     setShowFileUpload(false);
   };
 
@@ -77,6 +72,7 @@ export function MessageInput({ onSendMessage, disabled = false }: MessageInputPr
           <FileUpload
             onFileSelect={handleFileSelect}
             onClose={() => setShowFileUpload(false)}
+            currentUserId={currentUserId}
           />
         </div>
       )}

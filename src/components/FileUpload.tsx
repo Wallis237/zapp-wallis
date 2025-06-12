@@ -1,16 +1,21 @@
 
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Image, FileText, Video, Music, Upload } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
 
 interface FileUploadProps {
-  onFileSelect: (file: File) => void;
+  onFileSelect: (file: File, fileUrl: string, fileType: string, fileName: string) => void;
   onClose: () => void;
+  currentUserId?: string;
 }
 
-export function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
+export function FileUpload({ onFileSelect, onClose, currentUserId }: FileUploadProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const { toast } = useToast();
 
   const handleFileSelect = (accept: string) => {
     if (fileInputRef.current) {
@@ -19,10 +24,41 @@ export function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      onFileSelect(file);
+    if (!file || !currentUserId) return;
+
+    setIsUploading(true);
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${currentUserId}/${Date.now()}.${fileExt}`;
+
+      const { data, error } = await supabase.storage
+        .from('chat-files')
+        .upload(fileName, file);
+
+      if (error) throw error;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('chat-files')
+        .getPublicUrl(fileName);
+
+      onFileSelect(file, publicUrl, file.type, file.name);
+      
+      toast({
+        title: "Success",
+        description: "File uploaded successfully!"
+      });
+    } catch (error: any) {
+      console.error('Error uploading file:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to upload file",
+        variant: "destructive"
+      });
+    } finally {
+      setIsUploading(false);
+      onClose();
     }
   };
 
@@ -50,6 +86,7 @@ export function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
               size="sm"
               className="w-full justify-start"
               onClick={() => handleFileSelect(type.accept)}
+              disabled={isUploading}
             >
               <type.icon className="w-4 h-4 mr-2" />
               {type.label}
@@ -63,6 +100,12 @@ export function FileUpload({ onFileSelect, onClose }: FileUploadProps) {
           className="hidden"
           onChange={handleFileChange}
         />
+        
+        {isUploading && (
+          <div className="mt-2 text-center">
+            <p className="text-xs text-muted-foreground">Uploading...</p>
+          </div>
+        )}
       </CardContent>
     </Card>
   );
