@@ -99,6 +99,11 @@ export default function Index() {
     }
   };
 
+  const handleAuthSuccess = () => {
+    // This will be called when user successfully logs in
+    // The auth state change listener will handle the rest
+  };
+
   const handleChatSelect = (chatId: string, isRoomChat = false) => {
     setSelectedChatId(chatId);
     setIsRoom(isRoomChat);
@@ -148,7 +153,7 @@ export default function Index() {
   }
 
   if (!currentUser) {
-    return <AuthPage />;
+    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
   }
 
   return (

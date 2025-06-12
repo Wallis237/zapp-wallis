@@ -73,16 +73,39 @@ export function SettingsModal({
 
       if (profileError) throw profileError;
 
-      // Update or create user preferences
-      const { error: prefsError } = await supabase
+      // Check if user preferences already exist
+      const { data: existingPrefs } = await supabase
         .from('user_preferences')
-        .upsert({
-          user_id: currentUser.id,
-          language,
-          theme,
-          wallpaper_index: wallpaperIndex,
-          updated_at: new Date().toISOString()
-        });
+        .select('id')
+        .eq('user_id', currentUser.id)
+        .single();
+
+      let prefsError;
+      if (existingPrefs) {
+        // Update existing preferences
+        const { error } = await supabase
+          .from('user_preferences')
+          .update({
+            language,
+            theme,
+            wallpaper_index: wallpaperIndex,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', currentUser.id);
+        prefsError = error;
+      } else {
+        // Insert new preferences
+        const { error } = await supabase
+          .from('user_preferences')
+          .insert({
+            user_id: currentUser.id,
+            language,
+            theme,
+            wallpaper_index: wallpaperIndex,
+            updated_at: new Date().toISOString()
+          });
+        prefsError = error;
+      }
 
       if (prefsError) throw prefsError;
 
