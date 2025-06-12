@@ -47,6 +47,14 @@ export function SettingsModal({
     }
   }, [userPreferences]);
 
+  useEffect(() => {
+    if (currentUser) {
+      setDisplayName(currentUser.display_name || '');
+      setUsername(currentUser.username || '');
+      setIsOnline(currentUser.is_online || false);
+    }
+  }, [currentUser]);
+
   const handleSave = async () => {
     if (!currentUser?.id) return;
 
@@ -78,6 +86,14 @@ export function SettingsModal({
 
       if (prefsError) throw prefsError;
 
+      // Apply theme immediately
+      const root = document.documentElement;
+      if (theme === 'dark') {
+        root.classList.add('dark');
+      } else {
+        root.classList.remove('dark');
+      }
+
       toast({
         title: "Success",
         description: "Settings updated successfully!"
@@ -101,6 +117,29 @@ export function SettingsModal({
 
   const handleWallpaperSelect = (index: number) => {
     setWallpaperIndex(index);
+  };
+
+  const handleThemeChange = (newTheme: string) => {
+    setTheme(newTheme);
+    // Apply theme immediately for preview
+    const root = document.documentElement;
+    if (newTheme === 'dark') {
+      root.classList.add('dark');
+    } else {
+      root.classList.remove('dark');
+    }
+  };
+
+  const getLanguageName = (code: string) => {
+    const languages: Record<string, string> = {
+      en: 'English',
+      es: 'Español',
+      fr: 'Français',
+      de: 'Deutsch',
+      it: 'Italiano',
+      pt: 'Português'
+    };
+    return languages[code] || code;
   };
 
   return (
@@ -160,12 +199,15 @@ export function SettingsModal({
                 <SelectItem value="pt">Português</SelectItem>
               </SelectContent>
             </Select>
+            <p className="text-sm text-muted-foreground">
+              Current: {getLanguageName(language)} (Translation coming soon)
+            </p>
           </div>
 
           {/* Theme */}
           <div className="space-y-2">
             <Label>Theme</Label>
-            <Select value={theme} onValueChange={setTheme}>
+            <Select value={theme} onValueChange={handleThemeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>

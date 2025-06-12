@@ -1,11 +1,10 @@
 
 import { useState, useEffect, useRef } from 'react';
-import { Phone, Video, MoreVertical, Menu, MessageCircle } from 'lucide-react';
+import { MoreVertical, Menu, MessageCircle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
-import { CallModal } from './CallModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -38,8 +37,6 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
   const [isLoading, setIsLoading] = useState(false);
   const [chatPartner, setChatPartner] = useState<any>(null);
   const [roomInfo, setRoomInfo] = useState<any>(null);
-  const [showCallModal, setShowCallModal] = useState(false);
-  const [isVideoCall, setIsVideoCall] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -208,65 +205,24 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
     }
   };
 
-  const handleVoiceCall = () => {
-    setIsVideoCall(false);
-    setShowCallModal(true);
-  };
-
-  const handleVideoCall = () => {
-    setIsVideoCall(true);
-    setShowCallModal(true);
-  };
-
-  const renderFileMessage = (message: Message) => {
+  const renderFileMessage = (message: Message): string => {
     if (!message.file_url) return message.content;
 
     if (message.file_type?.startsWith('image/')) {
-      return (
-        <div className="space-y-2">
-          <img 
-            src={message.file_url} 
-            alt={message.file_name}
-            className="max-w-xs rounded-lg cursor-pointer"
-            onClick={() => window.open(message.file_url, '_blank')}
-          />
-          {message.content && <p>{message.content}</p>}
-        </div>
-      );
+      return message.content || `📷 Image: ${message.file_name}`;
     }
 
     if (message.file_type?.startsWith('video/')) {
-      return (
-        <div className="space-y-2">
-          <video 
-            src={message.file_url} 
-            controls
-            className="max-w-xs rounded-lg"
-          />
-          {message.content && <p>{message.content}</p>}
-        </div>
-      );
+      return message.content || `🎥 Video: ${message.file_name}`;
     }
 
-    return (
-      <div className="space-y-2">
-        <a 
-          href={message.file_url} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="text-blue-500 hover:underline"
-        >
-          📎 {message.file_name || 'Download file'}
-        </a>
-        {message.content && <p>{message.content}</p>}
-      </div>
-    );
+    return message.content || `📎 File: ${message.file_name}`;
   };
 
   if (!currentUserId) {
     return (
       <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-border bg-white flex items-center justify-between">
+        <div className="p-4 border-b border-border bg-background flex items-center justify-between">
           <Button 
             variant="ghost" 
             size="icon"
@@ -287,7 +243,7 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
             backgroundPosition: 'center'
           }}
         >
-          <div className="text-center bg-white/80 backdrop-blur-sm p-6 rounded-lg">
+          <div className="text-center bg-background/80 backdrop-blur-sm p-6 rounded-lg">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Please log in to chat</h2>
             <p className="text-muted-foreground">You need to be authenticated to use the chat</p>
@@ -300,7 +256,7 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
   if (!chatId) {
     return (
       <div className="flex-1 flex flex-col">
-        <div className="p-4 border-b border-border bg-white flex items-center justify-between">
+        <div className="p-4 border-b border-border bg-background flex items-center justify-between">
           <Button 
             variant="ghost" 
             size="icon"
@@ -321,11 +277,11 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
             backgroundPosition: 'center'
           }}
         >
-          <div className="text-center bg-white/80 backdrop-blur-sm p-6 rounded-lg">
+          <div className="text-center bg-background/80 backdrop-blur-sm p-6 rounded-lg">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
             <h2 className="text-xl font-semibold mb-2">Welcome to Chat App</h2>
             <p className="text-muted-foreground mb-4">Select a conversation to start chatting</p>
-            <Button onClick={onToggleSidebar} className="bg-primary text-white">
+            <Button onClick={onToggleSidebar} className="bg-primary text-primary-foreground">
               Browse Users & Rooms
             </Button>
           </div>
@@ -340,7 +296,7 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
   return (
     <div className="flex-1 flex flex-col">
       {/* Chat Header */}
-      <div className="p-4 border-b border-border bg-white flex items-center justify-between">
+      <div className="p-4 border-b border-border bg-background flex items-center justify-between">
         <div className="flex items-center gap-3">
           <Button 
             variant="ghost" 
@@ -358,7 +314,7 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
               </AvatarFallback>
             </Avatar>
             {!isRoom && chatPartner?.is_online && (
-              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-chat-online border-2 border-white rounded-full" />
+              <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-chat-online border-2 border-background rounded-full" />
             )}
           </div>
           
@@ -373,19 +329,11 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
           </div>
         </div>
         
-        {!isRoom && (
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="icon" onClick={handleVoiceCall}>
-              <Phone className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleVideoCall}>
-              <Video className="w-5 h-5" />
-            </Button>
-            <Button variant="ghost" size="icon">
-              <MoreVertical className="w-5 h-5" />
-            </Button>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          <Button variant="ghost" size="icon">
+            <MoreVertical className="w-5 h-5" />
+          </Button>
+        </div>
       </div>
 
       {/* Messages Area */}
@@ -411,6 +359,9 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
                 timestamp={new Date(message.created_at)}
                 senderName={message.sender?.display_name}
                 isGroupChat={isRoom}
+                fileUrl={message.file_url}
+                fileType={message.file_type}
+                fileName={message.file_name}
               />
             ))
           )}
@@ -424,17 +375,6 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
         onSendMessage={handleSendMessage} 
         currentUserId={currentUserId}
       />
-
-      {/* Call Modal */}
-      {showCallModal && (
-        <CallModal
-          isOpen={showCallModal}
-          onClose={() => setShowCallModal(false)}
-          isVideoCall={isVideoCall}
-          contactName={displayName}
-          contactAvatar={!isRoom ? chatPartner?.avatar_url : undefined}
-        />
-      )}
     </div>
   );
 }

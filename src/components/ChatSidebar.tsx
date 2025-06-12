@@ -148,7 +148,7 @@ export function ChatSidebar({
       
       {/* Sidebar */}
       <div className={`
-        fixed lg:relative top-0 left-0 h-full w-80 bg-white border-r border-border z-50
+        fixed lg:relative top-0 left-0 h-full w-80 bg-background border-r border-border z-50
         transform transition-transform duration-300 ease-in-out
         ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
         flex flex-col
@@ -246,7 +246,7 @@ export function ChatSidebar({
                           </AvatarFallback>
                         </Avatar>
                         {user.is_online && (
-                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-chat-online border-2 border-white rounded-full" />
+                          <div className="absolute -bottom-1 -right-1 w-4 h-4 bg-chat-online border-2 border-background rounded-full" />
                         )}
                       </div>
                       
