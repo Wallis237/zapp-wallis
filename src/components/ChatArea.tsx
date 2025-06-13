@@ -1,10 +1,11 @@
-
 import { useState, useEffect, useRef } from 'react';
-import { MoreVertical, Menu, MessageCircle } from 'lucide-react';
+import { MoreVertical, Menu, MessageCircle, Settings } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { MessageBubble } from './MessageBubble';
 import { MessageInput } from './MessageInput';
+import { SettingsModal } from './SettingsModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 
@@ -30,13 +31,30 @@ interface ChatAreaProps {
   onToggleSidebar: () => void;
   currentUserId?: string;
   wallpaperIndex: number;
+  currentUser?: any;
+  onThemeChange: (theme: string) => void;
+  onWallpaperChange: (index: number) => void;
+  userPreferences: any;
+  onPreferencesUpdate: () => void;
 }
 
-export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserId, wallpaperIndex }: ChatAreaProps) {
+export function ChatArea({ 
+  chatId, 
+  isRoom = false, 
+  onToggleSidebar, 
+  currentUserId, 
+  wallpaperIndex,
+  currentUser,
+  onThemeChange,
+  onWallpaperChange,
+  userPreferences,
+  onPreferencesUpdate
+}: ChatAreaProps) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [chatPartner, setChatPartner] = useState<any>(null);
   const [roomInfo, setRoomInfo] = useState<any>(null);
+  const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
@@ -330,9 +348,19 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon">
-            <MoreVertical className="w-5 h-5" />
-          </Button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="icon">
+                <MoreVertical className="w-5 h-5" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => setShowSettings(true)}>
+                <Settings className="w-4 h-4 mr-2" />
+                Settings
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -374,6 +402,18 @@ export function ChatArea({ chatId, isRoom = false, onToggleSidebar, currentUserI
       <MessageInput 
         onSendMessage={handleSendMessage} 
         currentUserId={currentUserId}
+      />
+
+      {/* Settings Modal */}
+      <SettingsModal
+        isOpen={showSettings}
+        onClose={() => setShowSettings(false)}
+        currentUser={currentUser}
+        onProfileUpdate={() => {}}
+        onThemeChange={onThemeChange}
+        onWallpaperChange={onWallpaperChange}
+        userPreferences={userPreferences}
+        onPreferencesUpdate={onPreferencesUpdate}
       />
     </div>
   );

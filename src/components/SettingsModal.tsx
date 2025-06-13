@@ -19,6 +19,7 @@ interface SettingsModalProps {
   onThemeChange: (theme: string) => void;
   onWallpaperChange: (index: number) => void;
   userPreferences: any;
+  onPreferencesUpdate?: () => void;
 }
 
 export function SettingsModal({ 
@@ -28,7 +29,8 @@ export function SettingsModal({
   onProfileUpdate,
   onThemeChange,
   onWallpaperChange,
-  userPreferences
+  userPreferences,
+  onPreferencesUpdate
 }: SettingsModalProps) {
   const [displayName, setDisplayName] = useState(currentUser?.display_name || '');
   const [username, setUsername] = useState(currentUser?.username || '');
@@ -109,12 +111,13 @@ export function SettingsModal({
 
       if (prefsError) throw prefsError;
 
-      // Apply theme immediately
-      const root = document.documentElement;
-      if (theme === 'dark') {
-        root.classList.add('dark');
-      } else {
-        root.classList.remove('dark');
+      // Apply changes immediately
+      onThemeChange(theme);
+      onWallpaperChange(wallpaperIndex);
+
+      // Update preferences in parent component
+      if (onPreferencesUpdate) {
+        onPreferencesUpdate();
       }
 
       toast({
@@ -123,8 +126,6 @@ export function SettingsModal({
       });
 
       onProfileUpdate();
-      onThemeChange(theme);
-      onWallpaperChange(wallpaperIndex);
       onClose();
     } catch (error: any) {
       console.error('Error updating settings:', error);
@@ -140,17 +141,14 @@ export function SettingsModal({
 
   const handleWallpaperSelect = (index: number) => {
     setWallpaperIndex(index);
+    // Apply wallpaper change immediately for preview
+    onWallpaperChange(index);
   };
 
   const handleThemeChange = (newTheme: string) => {
     setTheme(newTheme);
     // Apply theme immediately for preview
-    const root = document.documentElement;
-    if (newTheme === 'dark') {
-      root.classList.add('dark');
-    } else {
-      root.classList.remove('dark');
-    }
+    onThemeChange(newTheme);
   };
 
   const getLanguageName = (code: string) => {

@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Users, MessageCircle, Settings, Search, Menu, X, LogOut, Plus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -40,6 +39,7 @@ interface ChatSidebarProps {
   onThemeChange: (theme: string) => void;
   onWallpaperChange: (index: number) => void;
   userPreferences: any;
+  onPreferencesUpdate: () => void;
 }
 
 export function ChatSidebar({ 
@@ -52,7 +52,8 @@ export function ChatSidebar({
   onProfileUpdate,
   onThemeChange,
   onWallpaperChange,
-  userPreferences
+  userPreferences,
+  onPreferencesUpdate
 }: ChatSidebarProps) {
   const [searchTerm, setSearchTerm] = useState('');
   const [users, setUsers] = useState<Profile[]>([]);
@@ -330,6 +331,7 @@ export function ChatSidebar({
         onThemeChange={onThemeChange}
         onWallpaperChange={onWallpaperChange}
         userPreferences={userPreferences}
+        onPreferencesUpdate={onPreferencesUpdate}
       />
 
       <RoomModal

@@ -84,15 +84,17 @@ export default function Index() {
         throw error;
       }
 
-      setUserPreferences(data || {
+      const preferences = data || {
         language: 'en',
         theme: 'light',
         wallpaper_index: 0
-      });
+      };
+
+      setUserPreferences(preferences);
 
       // Apply theme from preferences
-      if (data?.theme) {
-        handleThemeChange(data.theme);
+      if (preferences.theme) {
+        handleThemeChange(preferences.theme);
       }
     } catch (error) {
       console.error('Error fetching user preferences:', error);
@@ -140,8 +142,16 @@ export default function Index() {
   };
 
   const handleWallpaperChange = (index: number) => {
-    // Wallpaper changes are handled in ChatArea component
-    console.log('Wallpaper changed to index:', index);
+    // Update user preferences state immediately
+    setUserPreferences(prev => ({
+      ...prev,
+      wallpaper_index: index
+    }));
+  };
+
+  const handlePreferencesUpdate = () => {
+    // Refresh user preferences after settings are saved
+    fetchUserPreferences();
   };
 
   if (loading) {
@@ -169,6 +179,7 @@ export default function Index() {
         onThemeChange={handleThemeChange}
         onWallpaperChange={handleWallpaperChange}
         userPreferences={userPreferences}
+        onPreferencesUpdate={handlePreferencesUpdate}
       />
       
       <ChatArea
@@ -177,6 +188,11 @@ export default function Index() {
         onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
         currentUserId={currentUser?.id}
         wallpaperIndex={userPreferences?.wallpaper_index || 0}
+        currentUser={currentUser}
+        onThemeChange={handleThemeChange}
+        onWallpaperChange={handleWallpaperChange}
+        userPreferences={userPreferences}
+        onPreferencesUpdate={handlePreferencesUpdate}
       />
     </div>
   );
