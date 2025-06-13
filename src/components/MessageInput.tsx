@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { EmojiPicker } from './EmojiPicker';
 import { FileUpload } from './FileUpload';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface MessageInputProps {
   onSendMessage: (message: string, fileUrl?: string, fileType?: string, fileName?: string) => void;
@@ -17,6 +18,7 @@ export function MessageInput({ onSendMessage, disabled = false, currentUserId }:
   const [showEmojiPicker, setShowEmojiPicker] = useState(false);
   const [showFileUpload, setShowFileUpload] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const { t } = useLanguage();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,7 +86,7 @@ export function MessageInput({ onSendMessage, disabled = false, currentUserId }:
             value={message}
             onChange={(e) => setMessage(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Type a message..."
+            placeholder={t('chat.placeholder')}
             disabled={disabled}
             className="min-h-[44px] max-h-32 resize-none pr-20 py-3"
             rows={1}

@@ -9,6 +9,7 @@ import { SettingsModal } from './SettingsModal';
 import { RoomModal } from './RoomModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Profile {
   id: string;
@@ -38,6 +39,7 @@ interface ChatSidebarProps {
   onProfileUpdate?: () => void;
   onThemeChange: (theme: string) => void;
   onWallpaperChange: (index: number) => void;
+  onLanguageChange: (language: string) => void;
   userPreferences: any;
   onPreferencesUpdate: () => void;
 }
@@ -52,6 +54,7 @@ export function ChatSidebar({
   onProfileUpdate,
   onThemeChange,
   onWallpaperChange,
+  onLanguageChange,
   userPreferences,
   onPreferencesUpdate
 }: ChatSidebarProps) {
@@ -62,6 +65,7 @@ export function ChatSidebar({
   const [showSettings, setShowSettings] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (currentUser) {
@@ -84,8 +88,8 @@ export function ChatSidebar({
     } catch (error) {
       console.error('Error fetching users:', error);
       toast({
-        title: "Error",
-        description: "Failed to load users",
+        title: t('error.title'),
+        description: t('error.loadUsers'),
         variant: "destructive"
       });
     } finally {
@@ -125,9 +129,9 @@ export function ChatSidebar({
     const now = new Date();
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60);
     
-    if (diffInHours < 1) return 'Just now';
-    if (diffInHours < 24) return `${Math.floor(diffInHours)}h`;
-    return `${Math.floor(diffInHours / 24)}d`;
+    if (diffInHours < 1) return t('time.justNow');
+    if (diffInHours < 24) return `${Math.floor(diffInHours)}${t('time.hours')}`;
+    return `${Math.floor(diffInHours / 24)}${t('time.days')}`;
   };
 
   const handleProfileUpdateSuccess = () => {
@@ -159,7 +163,7 @@ export function ChatSidebar({
           <div className="flex items-center justify-between mb-4">
             <h1 className="text-xl font-semibold flex items-center gap-2">
               <MessageCircle className="w-6 h-6 text-primary" />
-              Chat App
+              {t('app.title')}
             </h1>
             <div className="flex items-center gap-2">
               {currentUser && (
@@ -167,7 +171,7 @@ export function ChatSidebar({
                   variant="ghost" 
                   size="icon"
                   onClick={onLogout}
-                  title="Logout"
+                  title={t('sidebar.logout')}
                 >
                   <LogOut className="w-5 h-5" />
                 </Button>
@@ -199,7 +203,7 @@ export function ChatSidebar({
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
             <Input
-              placeholder="Search users and rooms..."
+              placeholder={t('search.placeholder')}
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-10"
@@ -211,14 +215,14 @@ export function ChatSidebar({
         <div className="flex-1 overflow-hidden">
           <Tabs defaultValue="users" className="h-full flex flex-col">
             <TabsList className="grid w-full grid-cols-2 mx-4 mt-2">
-              <TabsTrigger value="users">Users</TabsTrigger>
-              <TabsTrigger value="rooms">Rooms</TabsTrigger>
+              <TabsTrigger value="users">{t('sidebar.chats')}</TabsTrigger>
+              <TabsTrigger value="rooms">{t('sidebar.rooms')}</TabsTrigger>
             </TabsList>
 
             <TabsContent value="users" className="flex-1 overflow-y-auto mt-2">
               {!currentUser ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  Please log in to see users
+                  {t('auth.pleaseLogin')}
                 </div>
               ) : isLoading ? (
                 <div className="p-4 flex justify-center">
@@ -226,7 +230,7 @@ export function ChatSidebar({
                 </div>
               ) : filteredUsers.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm ? 'No users found' : 'No users available'}
+                  {searchTerm ? t('search.noUsersFound') : t('sidebar.noUsers')}
                 </div>
               ) : (
                 filteredUsers.map((user) => (
@@ -255,7 +259,7 @@ export function ChatSidebar({
                         <div className="flex items-center justify-between">
                           <h3 className="font-medium truncate">{user.display_name || user.username}</h3>
                           <span className="text-xs text-muted-foreground">
-                            {user.is_online ? 'Online' : formatLastSeen(user.last_seen)}
+                            {user.is_online ? t('status.online') : formatLastSeen(user.last_seen)}
                           </span>
                         </div>
                         <p className="text-sm text-muted-foreground truncate">@{user.username}</p>
@@ -270,13 +274,13 @@ export function ChatSidebar({
               <div className="p-4 border-b border-border">
                 <Button onClick={() => setShowRoomModal(true)} className="w-full">
                   <Plus className="w-4 h-4 mr-2" />
-                  Create Room
+                  {t('sidebar.createRoom')}
                 </Button>
               </div>
 
               {filteredRooms.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
-                  {searchTerm ? 'No rooms found' : 'No rooms available'}
+                  {searchTerm ? t('search.noRoomsFound') : t('sidebar.noRooms')}
                 </div>
               ) : (
                 filteredRooms.map((room) => (
@@ -298,7 +302,7 @@ export function ChatSidebar({
                       <div className="flex-1 min-w-0">
                         <h3 className="font-medium truncate">{room.name}</h3>
                         <p className="text-sm text-muted-foreground truncate">
-                          {room.description || 'Private room'}
+                          {room.description || t('room.private')}
                         </p>
                       </div>
                     </div>
@@ -312,10 +316,10 @@ export function ChatSidebar({
         {/* Footer */}
         <div className="p-4 border-t border-border">
           <div className="flex items-center justify-between">
-            <Button variant="ghost" size="icon" onClick={() => { fetchUsers(); fetchRooms(); }} title="Refresh">
+            <Button variant="ghost" size="icon" onClick={() => { fetchUsers(); fetchRooms(); }} title={t('actions.refresh')}>
               <Users className="w-5 h-5" />
             </Button>
-            <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title="Settings">
+            <Button variant="ghost" size="icon" onClick={() => setShowSettings(true)} title={t('sidebar.settings')}>
               <Settings className="w-5 h-5" />
             </Button>
           </div>
@@ -330,6 +334,7 @@ export function ChatSidebar({
         onProfileUpdate={handleProfileUpdateSuccess}
         onThemeChange={onThemeChange}
         onWallpaperChange={onWallpaperChange}
+        onLanguageChange={onLanguageChange}
         userPreferences={userPreferences}
         onPreferencesUpdate={onPreferencesUpdate}
       />

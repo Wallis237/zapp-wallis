@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Image, FileText, Video, Music, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface FileUploadProps {
   onFileSelect: (file: File, fileUrl: string, fileType: string, fileName: string) => void;
@@ -16,6 +17,7 @@ export function FileUpload({ onFileSelect, onClose, currentUserId }: FileUploadP
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleFileSelect = (accept: string) => {
     if (fileInputRef.current) {
@@ -47,12 +49,12 @@ export function FileUpload({ onFileSelect, onClose, currentUserId }: FileUploadP
       
       toast({
         title: "Success",
-        description: "File uploaded successfully!"
+        description: t('success.fileUploaded')
       });
     } catch (error: any) {
       console.error('Error uploading file:', error);
       toast({
-        title: "Error",
+        title: t('error.title'),
         description: error.message || "Failed to upload file",
         variant: "destructive"
       });
@@ -103,7 +105,7 @@ export function FileUpload({ onFileSelect, onClose, currentUserId }: FileUploadP
         
         {isUploading && (
           <div className="mt-2 text-center">
-            <p className="text-xs text-muted-foreground">Uploading...</p>
+            <p className="text-xs text-muted-foreground">{t('actions.uploading')}</p>
           </div>
         )}
       </CardContent>

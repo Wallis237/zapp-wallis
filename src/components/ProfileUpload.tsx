@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Upload, Camera } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface ProfileUploadProps {
   currentUser: any;
@@ -14,6 +15,7 @@ interface ProfileUploadProps {
 export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadProps) {
   const [isUploading, setIsUploading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handlePhotoUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -22,7 +24,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
     // Validate file type
     if (!file.type.startsWith('image/')) {
       toast({
-        title: "Error",
+        title: t('error.title'),
         description: "Please select an image file",
         variant: "destructive"
       });
@@ -32,7 +34,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
     // Validate file size (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast({
-        title: "Error",
+        title: t('error.title'),
         description: "File size must be less than 5MB",
         variant: "destructive"
       });
@@ -82,7 +84,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
 
       toast({
         title: "Success",
-        description: "Profile photo updated successfully!"
+        description: t('success.photoUpdated')
       });
 
       // Trigger profile refresh
@@ -90,8 +92,8 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
     } catch (error: any) {
       console.error('Error uploading photo:', error);
       toast({
-        title: "Error",
-        description: error.message || "Failed to upload profile photo",
+        title: t('error.title'),
+        description: error.message || t('error.uploadPhoto'),
         variant: "destructive"
       });
     } finally {
@@ -127,7 +129,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
         <Button variant="ghost" size="sm" disabled={isUploading} asChild>
           <div className="flex items-center gap-2">
             <Upload className="w-4 h-4" />
-            {isUploading ? 'Uploading...' : 'Change Photo'}
+            {isUploading ? t('actions.uploading') : t('actions.changePhoto')}
           </div>
         </Button>
         <input

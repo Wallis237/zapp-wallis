@@ -8,6 +8,7 @@ import { MessageInput } from './MessageInput';
 import { SettingsModal } from './SettingsModal';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface Message {
   id: string;
@@ -34,6 +35,7 @@ interface ChatAreaProps {
   currentUser?: any;
   onThemeChange: (theme: string) => void;
   onWallpaperChange: (index: number) => void;
+  onLanguageChange: (language: string) => void;
   userPreferences: any;
   onPreferencesUpdate: () => void;
 }
@@ -47,6 +49,7 @@ export function ChatArea({
   currentUser,
   onThemeChange,
   onWallpaperChange,
+  onLanguageChange,
   userPreferences,
   onPreferencesUpdate
 }: ChatAreaProps) {
@@ -57,6 +60,7 @@ export function ChatArea({
   const [showSettings, setShowSettings] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const wallpapers = [
     'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop',
@@ -143,8 +147,8 @@ export function ChatArea({
     } catch (error) {
       console.error('Error fetching messages:', error);
       toast({
-        title: "Error",
-        description: "Failed to load messages",
+        title: t('error.title'),
+        description: t('error.loadMessages'),
         variant: "destructive"
       });
     } finally {
@@ -200,7 +204,7 @@ export function ChatArea({
 
       if (isRoom) {
         messageData.room_id = chatId;
-        messageData.receiver_id = currentUserId; // For room messages, we use sender as receiver too
+        messageData.receiver_id = currentUserId;
       } else {
         messageData.receiver_id = chatId;
       }
@@ -216,8 +220,8 @@ export function ChatArea({
     } catch (error) {
       console.error('Error sending message:', error);
       toast({
-        title: "Error",
-        description: "Failed to send message",
+        title: t('error.title'),
+        description: t('error.sendMessage'),
         variant: "destructive"
       });
     }
@@ -227,14 +231,14 @@ export function ChatArea({
     if (!message.file_url) return message.content;
 
     if (message.file_type?.startsWith('image/')) {
-      return message.content || `📷 Image: ${message.file_name}`;
+      return message.content || `📷 ${t('file.image')}: ${message.file_name}`;
     }
 
     if (message.file_type?.startsWith('video/')) {
-      return message.content || `🎥 Video: ${message.file_name}`;
+      return message.content || `🎥 ${t('file.video')}: ${message.file_name}`;
     }
 
-    return message.content || `📎 File: ${message.file_name}`;
+    return message.content || `📎 ${t('file.attachment')}: ${message.file_name}`;
   };
 
   if (!currentUserId) {
@@ -249,7 +253,7 @@ export function ChatArea({
           >
             <Menu className="w-6 h-6" />
           </Button>
-          <h1 className="text-lg font-semibold">Chat App</h1>
+          <h1 className="text-lg font-semibold">{t('app.title')}</h1>
           <div className="w-10"></div>
         </div>
         
@@ -263,8 +267,8 @@ export function ChatArea({
         >
           <div className="text-center bg-background/80 backdrop-blur-sm p-6 rounded-lg">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Please log in to chat</h2>
-            <p className="text-muted-foreground">You need to be authenticated to use the chat</p>
+            <h2 className="text-xl font-semibold mb-2">{t('auth.pleaseLoginToChat')}</h2>
+            <p className="text-muted-foreground">{t('auth.needAuthentication')}</p>
           </div>
         </div>
       </div>
@@ -283,7 +287,7 @@ export function ChatArea({
           >
             <Menu className="w-6 h-6" />
           </Button>
-          <h1 className="text-lg font-semibold">Chat App</h1>
+          <h1 className="text-lg font-semibold">{t('app.title')}</h1>
           <div className="w-10"></div>
         </div>
         
@@ -297,10 +301,10 @@ export function ChatArea({
         >
           <div className="text-center bg-background/80 backdrop-blur-sm p-6 rounded-lg">
             <MessageCircle className="w-16 h-16 text-muted-foreground mx-auto mb-4" />
-            <h2 className="text-xl font-semibold mb-2">Welcome to Chat App</h2>
-            <p className="text-muted-foreground mb-4">Select a conversation to start chatting</p>
+            <h2 className="text-xl font-semibold mb-2">{t('welcome.title')}</h2>
+            <p className="text-muted-foreground mb-4">{t('welcome.selectChat')}</p>
             <Button onClick={onToggleSidebar} className="bg-primary text-primary-foreground">
-              Browse Users & Rooms
+              {t('welcome.browseUsers')}
             </Button>
           </div>
         </div>
@@ -309,7 +313,7 @@ export function ChatArea({
   }
 
   const displayInfo = isRoom ? roomInfo : chatPartner;
-  const displayName = isRoom ? roomInfo?.name : (chatPartner?.display_name || 'Unknown User');
+  const displayName = isRoom ? roomInfo?.name : (chatPartner?.display_name || t('chat.unknownUser'));
 
   return (
     <div className="flex-1 flex flex-col">
@@ -340,8 +344,8 @@ export function ChatArea({
             <h2 className="font-semibold">{displayName}</h2>
             <p className="text-xs text-muted-foreground">
               {isRoom 
-                ? (roomInfo?.description || 'Private room')
-                : (chatPartner?.is_online ? 'Online' : 'Last seen recently')
+                ? (roomInfo?.description || t('room.private'))
+                : (chatPartner?.is_online ? t('status.online') : t('status.lastSeenRecently'))
               }
             </p>
           </div>
@@ -357,7 +361,7 @@ export function ChatArea({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={() => setShowSettings(true)}>
                 <Settings className="w-4 h-4 mr-2" />
-                Settings
+                {t('sidebar.settings')}
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -412,6 +416,7 @@ export function ChatArea({
         onProfileUpdate={() => {}}
         onThemeChange={onThemeChange}
         onWallpaperChange={onWallpaperChange}
+        onLanguageChange={onLanguageChange}
         userPreferences={userPreferences}
         onPreferencesUpdate={onPreferencesUpdate}
       />
