@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { ProfileUpload } from './ProfileUpload';
 import { WallpaperSlideshow } from './WallpaperSlideshow';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -18,6 +19,7 @@ interface SettingsModalProps {
   onProfileUpdate: () => void;
   onThemeChange: (theme: string) => void;
   onWallpaperChange: (index: number) => void;
+  onLanguageChange?: (language: string) => void;
   userPreferences: any;
   onPreferencesUpdate?: () => void;
 }
@@ -29,6 +31,7 @@ export function SettingsModal({
   onProfileUpdate,
   onThemeChange,
   onWallpaperChange,
+  onLanguageChange,
   userPreferences,
   onPreferencesUpdate
 }: SettingsModalProps) {
@@ -40,6 +43,7 @@ export function SettingsModal({
   const [wallpaperIndex, setWallpaperIndex] = useState(userPreferences?.wallpaper_index || 0);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   useEffect(() => {
     if (userPreferences) {
@@ -114,6 +118,9 @@ export function SettingsModal({
       // Apply changes immediately
       onThemeChange(theme);
       onWallpaperChange(wallpaperIndex);
+      if (onLanguageChange) {
+        onLanguageChange(language);
+      }
 
       // Update preferences in parent component
       if (onPreferencesUpdate) {
@@ -151,6 +158,14 @@ export function SettingsModal({
     onThemeChange(newTheme);
   };
 
+  const handleLanguageChange = (newLanguage: string) => {
+    setLanguage(newLanguage);
+    // Apply language change immediately for preview
+    if (onLanguageChange) {
+      onLanguageChange(newLanguage);
+    }
+  };
+
   const getLanguageName = (code: string) => {
     const languages: Record<string, string> = {
       en: 'English',
@@ -167,13 +182,13 @@ export function SettingsModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px] max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Settings</DialogTitle>
+          <DialogTitle>{t('settings.title')}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-6 py-4">
           {/* Profile Photo Section */}
           <div className="space-y-2">
-            <Label>Profile Photo</Label>
+            <Label>{t('settings.profilePhoto')}</Label>
             <div className="flex justify-center">
               <ProfileUpload 
                 currentUser={currentUser} 
@@ -184,30 +199,30 @@ export function SettingsModal({
 
           {/* Display Name */}
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor="displayName">{t('settings.displayName')}</Label>
             <Input
               id="displayName"
               value={displayName}
               onChange={(e) => setDisplayName(e.target.value)}
-              placeholder="Enter your display name"
+              placeholder={t('settings.displayName')}
             />
           </div>
 
           {/* Username */}
           <div className="space-y-2">
-            <Label htmlFor="username">Username</Label>
+            <Label htmlFor="username">{t('settings.username')}</Label>
             <Input
               id="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              placeholder="Enter your username"
+              placeholder={t('settings.username')}
             />
           </div>
 
           {/* Language */}
           <div className="space-y-2">
-            <Label>Language</Label>
-            <Select value={language} onValueChange={setLanguage}>
+            <Label>{t('settings.language')}</Label>
+            <Select value={language} onValueChange={handleLanguageChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select language" />
               </SelectTrigger>
@@ -221,27 +236,27 @@ export function SettingsModal({
               </SelectContent>
             </Select>
             <p className="text-sm text-muted-foreground">
-              Current: {getLanguageName(language)} (Translation coming soon)
+              Current: {getLanguageName(language)}
             </p>
           </div>
 
           {/* Theme */}
           <div className="space-y-2">
-            <Label>Theme</Label>
+            <Label>{t('settings.theme')}</Label>
             <Select value={theme} onValueChange={handleThemeChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select theme" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="light">Light</SelectItem>
-                <SelectItem value="dark">Dark</SelectItem>
+                <SelectItem value="light">{t('theme.light')}</SelectItem>
+                <SelectItem value="dark">{t('theme.dark')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {/* Wallpaper Selection */}
           <div className="space-y-2">
-            <Label>Chat Wallpaper</Label>
+            <Label>{t('settings.wallpaper')}</Label>
             <WallpaperSlideshow 
               wallpaperIndex={wallpaperIndex}
               onWallpaperChange={handleWallpaperSelect}
@@ -250,7 +265,7 @@ export function SettingsModal({
 
           {/* Online Status */}
           <div className="flex items-center justify-between">
-            <Label htmlFor="online-status">Show as online</Label>
+            <Label htmlFor="online-status">{t('settings.onlineStatus')}</Label>
             <Switch
               id="online-status"
               checked={isOnline}
@@ -261,10 +276,10 @@ export function SettingsModal({
           {/* Action Buttons */}
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button onClick={handleSave} disabled={isLoading}>
-              {isLoading ? 'Saving...' : 'Save Changes'}
+              {isLoading ? t('settings.saving') : t('settings.save')}
             </Button>
           </div>
         </div>

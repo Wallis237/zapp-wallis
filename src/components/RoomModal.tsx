@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 interface RoomModalProps {
   isOpen: boolean;
@@ -20,12 +21,19 @@ export function RoomModal({ isOpen, onClose, onRoomCreated, currentUser }: RoomM
   const [description, setDescription] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleCreateRoom = async () => {
     if (!roomName.trim() || !currentUser?.id) return;
 
     setIsLoading(true);
     try {
+      console.log('Creating room with:', { 
+        name: roomName.trim(), 
+        description: description.trim(), 
+        creator_id: currentUser.id 
+      });
+
       // Create the room
       const { data: room, error: roomError } = await supabase
         .from('rooms')
@@ -37,7 +45,12 @@ export function RoomModal({ isOpen, onClose, onRoomCreated, currentUser }: RoomM
         .select()
         .single();
 
-      if (roomError) throw roomError;
+      if (roomError) {
+        console.error('Room creation error:', roomError);
+        throw roomError;
+      }
+
+      console.log('Room created successfully:', room);
 
       // Add creator as admin member
       const { error: memberError } = await supabase
@@ -48,7 +61,12 @@ export function RoomModal({ isOpen, onClose, onRoomCreated, currentUser }: RoomM
           role: 'admin'
         });
 
-      if (memberError) throw memberError;
+      if (memberError) {
+        console.error('Member creation error:', memberError);
+        throw memberError;
+      }
+
+      console.log('Creator added as admin member');
 
       toast({
         title: "Success",
@@ -75,37 +93,37 @@ export function RoomModal({ isOpen, onClose, onRoomCreated, currentUser }: RoomM
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>Create New Room</DialogTitle>
+          <DialogTitle>{t('room.create')}</DialogTitle>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="space-y-2">
-            <Label htmlFor="roomName">Room Name</Label>
+            <Label htmlFor="roomName">{t('room.name')}</Label>
             <Input
               id="roomName"
               value={roomName}
               onChange={(e) => setRoomName(e.target.value)}
-              placeholder="Enter room name"
+              placeholder={t('room.name')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
+            <Label htmlFor="description">{t('room.description')}</Label>
             <Textarea
               id="description"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Enter room description"
+              placeholder={t('room.description')}
               rows={3}
             />
           </div>
 
           <div className="flex justify-end gap-2 pt-4">
             <Button variant="outline" onClick={onClose}>
-              Cancel
+              {t('settings.cancel')}
             </Button>
             <Button onClick={handleCreateRoom} disabled={!roomName.trim() || isLoading}>
-              {isLoading ? 'Creating...' : 'Create Room'}
+              {isLoading ? t('room.creating') : t('room.create')}
             </Button>
           </div>
         </div>

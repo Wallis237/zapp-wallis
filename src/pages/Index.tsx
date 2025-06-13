@@ -5,6 +5,7 @@ import { ChatArea } from '@/components/ChatArea';
 import { AuthPage } from '@/components/AuthPage';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useLanguage } from '@/contexts/LanguageContext';
 
 export default function Index() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -14,6 +15,7 @@ export default function Index() {
   const [loading, setLoading] = useState(true);
   const [userPreferences, setUserPreferences] = useState<any>(null);
   const { toast } = useToast();
+  const { setLanguage } = useLanguage();
 
   useEffect(() => {
     checkAuth();
@@ -92,9 +94,12 @@ export default function Index() {
 
       setUserPreferences(preferences);
 
-      // Apply theme from preferences
+      // Apply theme and language from preferences
       if (preferences.theme) {
         handleThemeChange(preferences.theme);
+      }
+      if (preferences.language) {
+        setLanguage(preferences.language);
       }
     } catch (error) {
       console.error('Error fetching user preferences:', error);
@@ -149,6 +154,15 @@ export default function Index() {
     }));
   };
 
+  const handleLanguageChange = (language: string) => {
+    setLanguage(language);
+    // Update user preferences state immediately
+    setUserPreferences(prev => ({
+      ...prev,
+      language: language
+    }));
+  };
+
   const handlePreferencesUpdate = () => {
     // Refresh user preferences after settings are saved
     fetchUserPreferences();
@@ -178,6 +192,7 @@ export default function Index() {
         onProfileUpdate={() => fetchUserProfile(currentUser.id)}
         onThemeChange={handleThemeChange}
         onWallpaperChange={handleWallpaperChange}
+        onLanguageChange={handleLanguageChange}
         userPreferences={userPreferences}
         onPreferencesUpdate={handlePreferencesUpdate}
       />
@@ -191,6 +206,7 @@ export default function Index() {
         currentUser={currentUser}
         onThemeChange={handleThemeChange}
         onWallpaperChange={handleWallpaperChange}
+        onLanguageChange={handleLanguageChange}
         userPreferences={userPreferences}
         onPreferencesUpdate={handlePreferencesUpdate}
       />
