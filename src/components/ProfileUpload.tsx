@@ -1,4 +1,3 @@
-
 import { useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -68,7 +67,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
         throw new Error('Failed to get public URL');
       }
 
-      // Update profile with new avatar URL
+      // Update profile with new avatar URL in Supabase
       const { error: updateError } = await supabase
         .from('profiles')
         .update({ 
@@ -87,8 +86,7 @@ export function ProfileUpload({ currentUser, onProfileUpdate }: ProfileUploadPro
         description: t('success.photoUpdated')
       });
 
-      // Trigger profile refresh
-      onProfileUpdate();
+      onProfileUpdate(); // ensure it actually reloads profile in parent
     } catch (error: any) {
       console.error('Error uploading photo:', error);
       toast({

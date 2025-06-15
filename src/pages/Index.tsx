@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { ChatSidebar } from '@/components/ChatSidebar';
 import { ChatArea } from '@/components/ChatArea';
@@ -168,6 +167,13 @@ export default function Index() {
     fetchUserPreferences();
   };
 
+  // Add useEffect to update wallpaper on preference change
+  useEffect(() => {
+    if (userPreferences?.wallpaper_index !== undefined) {
+      handleWallpaperChange(userPreferences.wallpaper_index);
+    }
+  }, [userPreferences?.wallpaper_index]);
+
   if (loading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -181,7 +187,13 @@ export default function Index() {
   }
 
   return (
-    <div className="h-screen flex bg-background">
+    <div className="h-screen flex bg-background"
+      style={{
+        backgroundImage: userPreferences?.wallpaper_index !== undefined
+          ? `url(https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop)`
+          : undefined
+      }}
+    >
       <ChatSidebar
         isOpen={sidebarOpen}
         onToggle={() => setSidebarOpen(!sidebarOpen)}
@@ -196,7 +208,7 @@ export default function Index() {
         userPreferences={userPreferences}
         onPreferencesUpdate={handlePreferencesUpdate}
       />
-      
+
       <ChatArea
         chatId={selectedChatId}
         isRoom={isRoom}
