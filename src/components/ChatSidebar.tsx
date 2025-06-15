@@ -66,11 +66,14 @@ export function ChatSidebar({
   const [showRoomModal, setShowRoomModal] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
+  const [allRooms, setAllRooms] = useState<Room[]>([]);
+  const [userRoomIds, setUserRoomIds] = useState<string[]>([]);
 
   useEffect(() => {
     if (currentUser) {
       fetchUsers();
       fetchRooms();
+      fetchAllRooms();
     }
   }, [currentUser]);
 
@@ -97,6 +100,7 @@ export function ChatSidebar({
     }
   };
 
+  // Existing: fetchRooms only gets rooms the user is a member of
   const fetchRooms = async () => {
     try {
       const { data, error } = await supabase
@@ -110,8 +114,53 @@ export function ChatSidebar({
 
       if (error) throw error;
       setRooms(data || []);
+      // Keep a set of their room IDs for quick lookup
+      setUserRoomIds((data || []).map((r: any) => r.id));
     } catch (error) {
       console.error('Error fetching rooms:', error);
+    }
+  };
+
+  // NEW: Fetch all public rooms, regardless of membership
+  const fetchAllRooms = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('rooms')
+        .select('*')
+        .eq('is_private', false)
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setAllRooms(data || []);
+    } catch (error) {
+      console.error('Error fetching all rooms:', error);
+    }
+  };
+
+  // Allow user to join a room by inserting into room_members
+  const handleJoinRoom = async (roomId: string) => {
+    if (!currentUser?.id) return;
+    try {
+      const { error } = await supabase
+        .from('room_members')
+        .insert({
+          user_id: currentUser.id,
+          room_id: roomId,
+          role: 'member'
+        });
+      if (error) throw error;
+      toast({
+        title: t('sidebar.joinedRoom'),
+        description: t('sidebar.joinedRoomSuccess'),
+      });
+      fetchRooms(); // refresh user rooms
+    } catch (err: any) {
+      console.error('Error joining room:', err);
+      toast({
+        title: t('error.title'),
+        description: err.message || t('sidebar.joinFailed'),
+        variant: "destructive"
+      });
     }
   };
 
@@ -140,6 +189,12 @@ export function ChatSidebar({
     }
     fetchUsers();
   };
+
+  // List of public rooms user can join (not already in)
+  const joinableRooms = allRooms.filter(
+    r => !userRoomIds.includes(r.id)
+      && (r.name?.toLowerCase().includes(searchTerm.toLowerCase()) || r.description?.toLowerCase().includes(searchTerm.toLowerCase()))
+  );
 
   return (
     <>
@@ -278,6 +333,32 @@ export function ChatSidebar({
                 </Button>
               </div>
 
+              {/* NEW: Show joinable public rooms */}
+              {joinableRooms.length > 0 && (
+                <div className="px-4 pt-2 pb-0">
+                  <div className="text-xs uppercase font-semibold text-muted-foreground mb-1">{t('sidebar.publicRooms')}</div>
+                  <div className="space-y-2">
+                    {joinableRooms.map(room => (
+                      <div key={room.id} className="flex items-center gap-2 p-2 rounded-lg bg-muted/50">
+                        <div className="flex-1">
+                          <div className="font-medium truncate">{room.name}</div>
+                          <div className="text-xs text-muted-foreground truncate">{room.description}</div>
+                        </div>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleJoinRoom(room.id)}
+                          className="ml-2"
+                        >
+                          {t('sidebar.join')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* User's rooms */}
               {filteredRooms.length === 0 ? (
                 <div className="p-4 text-center text-muted-foreground">
                   {searchTerm ? t('search.noRoomsFound') : t('sidebar.noRooms')}

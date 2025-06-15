@@ -145,14 +145,6 @@ export default function Index() {
     }
   };
 
-  const handleWallpaperChange = (index: number) => {
-    // Update user preferences state immediately
-    setUserPreferences(prev => ({
-      ...prev,
-      wallpaper_index: index
-    }));
-  };
-
   const handleLanguageChange = (language: string) => {
     setLanguage(language);
     // Update user preferences state immediately
@@ -165,6 +157,36 @@ export default function Index() {
   const handlePreferencesUpdate = () => {
     // Refresh user preferences after settings are saved
     fetchUserPreferences();
+  };
+
+  // This effect updates wallpaper immediately when changed, not only after preference is saved
+  useEffect(() => {
+    if (userPreferences?.wallpaper_index !== undefined) {
+      handleWallpaperChange(userPreferences.wallpaper_index);
+    }
+  }, [userPreferences?.wallpaper_index]);
+
+  // Instant wallpaper switching when selected
+  const handleWallpaperChange = (index: number) => {
+    const wallpapers = [
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1501594907352-04cda38ebc29?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1468276311594-df7cb65d8df6?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1447752875215-b2761acb3c5d?w=1920&h=1080&fit=crop',
+      'https://images.unsplash.com/photo-1426604966848-d7adac402bff?w=1920&h=1080&fit=crop'
+    ];
+    // Also update wallpaper immediately
+    document.body.style.backgroundImage = `url(${wallpapers[index]})`;
+    document.body.style.backgroundSize = 'cover';
+    document.body.style.backgroundPosition = 'center';
+    // Update user preferences state immediately
+    setUserPreferences(prev => ({
+      ...prev,
+      wallpaper_index: index
+    }));
   };
 
   // Add useEffect to update wallpaper on preference change
