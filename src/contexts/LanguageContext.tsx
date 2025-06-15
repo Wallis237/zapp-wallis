@@ -1,5 +1,12 @@
 
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+
+// Add this runtime check to debug build & import errors
+// Remove when resolved
+if (!React || !useState) {
+  // This will help catch import/compilation issues fast
+  console.error("React or useState is not defined in LanguageContext.tsx");
+}
 
 interface LanguageContextType {
   language: string;
