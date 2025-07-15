@@ -1,5 +1,5 @@
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,15 +14,38 @@ interface AuthPageProps {
 export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   const [isLogin, setIsLogin] = useState(true);
   const [isResetMode, setIsResetMode] = useState(false);
+  const [isUpdatePasswordMode, setIsUpdatePasswordMode] = useState(false);
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [username, setUsername] = useState('');
   const [displayName, setDisplayName] = useState('');
   const [profilePhoto, setProfilePhoto] = useState<File | null>(null);
   const [profilePhotoPreview, setProfilePhotoPreview] = useState<string>('');
   const [showPassword, setShowPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const { toast } = useToast();
+
+  // Check if user is coming from password reset email
+  useEffect(() => {
+    const checkForPasswordReset = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) {
+        // Check if this is a password recovery session
+        const urlParams = new URLSearchParams(window.location.search);
+        if (urlParams.get('type') === 'recovery') {
+          setIsUpdatePasswordMode(true);
+          setIsResetMode(false);
+          setIsLogin(false);
+        }
+      }
+    };
+    
+    checkForPasswordReset();
+  }, []);
 
   const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -61,22 +84,82 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
     
     try {
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: `${window.location.origin}/?type=recovery`,
       });
       
       if (error) throw error;
       
       toast({
         title: "Password Reset Sent",
-        description: "Check your email for password reset instructions."
+        description: "Check your email for password reset instructions. Click the link in the email to return here and set your new password."
       });
       
       setIsResetMode(false);
+      setIsLogin(true);
     } catch (error: any) {
       console.error('Password reset error:', error);
       toast({
         title: "Error",
         description: error.message || "Failed to send password reset email",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleUpdatePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newPassword || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all password fields",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters long",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.updateUser({
+        password: newPassword
+      });
+      
+      if (error) throw error;
+      
+      toast({
+        title: "Success",
+        description: "Password updated successfully!"
+      });
+      
+      // Clear URL parameters and redirect to main app
+      window.history.replaceState({}, document.title, window.location.pathname);
+      onAuthSuccess();
+    } catch (error: any) {
+      console.error('Password update error:', error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update password",
         variant: "destructive"
       });
     } finally {
@@ -152,6 +235,18 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
     }
   };
 
+  const getTitle = () => {
+    if (isUpdatePasswordMode) return 'Set New Password';
+    if (isResetMode) return 'Reset Password';
+    return isLogin ? 'Welcome Back' : 'Join Chat App';
+  };
+
+  const getDescription = () => {
+    if (isUpdatePasswordMode) return 'Enter your new password below';
+    if (isResetMode) return 'Enter your email to receive reset instructions';
+    return isLogin ? 'Sign in to continue chatting' : 'Create an account to start chatting';
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
       <Card className="w-full max-w-md">
@@ -159,22 +254,66 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
           <div className="flex justify-center mb-4">
             <MessageCircle className="w-12 h-12 text-primary" />
           </div>
-          <CardTitle className="text-2xl">
-            {isResetMode ? 'Reset Password' : (isLogin ? 'Welcome Back' : 'Join Chat App')}
-          </CardTitle>
-          <CardDescription>
-            {isResetMode 
-              ? 'Enter your email to receive reset instructions'
-              : (isLogin 
-                ? 'Sign in to continue chatting' 
-                : 'Create an account to start chatting'
-              )
-            }
-          </CardDescription>
+          <CardTitle className="text-2xl">{getTitle()}</CardTitle>
+          <CardDescription>{getDescription()}</CardDescription>
         </CardHeader>
         
         <CardContent>
-          {isResetMode ? (
+          {isUpdatePasswordMode ? (
+            <form onSubmit={handleUpdatePassword} className="space-y-4">
+              <div className="space-y-2">
+                <label className="text-sm font-medium">New Password</label>
+                <div className="relative">
+                  <Input
+                    type={showNewPassword ? 'text' : 'password'}
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter your new password"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowNewPassword(!showNewPassword)}
+                  >
+                    {showNewPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Confirm New Password</label>
+                <div className="relative">
+                  <Input
+                    type={showConfirmPassword ? 'text' : 'password'}
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your new password"
+                    required
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 h-8 w-8"
+                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                  >
+                    {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </Button>
+                </div>
+              </div>
+              
+              <Button 
+                type="submit" 
+                className="w-full" 
+                disabled={isLoading}
+              >
+                {isLoading ? 'Updating...' : 'Update Password'}
+              </Button>
+            </form>
+          ) : isResetMode ? (
             <form onSubmit={handlePasswordReset} className="space-y-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Email</label>
@@ -313,7 +452,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
             </form>
           )}
           
-          {!isResetMode && (
+          {!isResetMode && !isUpdatePasswordMode && (
             <div className="mt-4 text-center">
               <button
                 type="button"
