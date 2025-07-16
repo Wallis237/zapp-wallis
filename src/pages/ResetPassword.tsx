@@ -21,16 +21,42 @@ export default function ResetPassword() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
+  const [isValidToken, setIsValidToken] = useState(false);
 
   useEffect(() => {
-    // Check if we have the required tokens
-    const accessToken = searchParams.get('access_token');
-    const refreshToken = searchParams.get('refresh_token');
-    const type = searchParams.get('type');
+    // Check if we have valid reset tokens from Supabase
+    const checkTokens = async () => {
+      const accessToken = searchParams.get('access_token');
+      const refreshToken = searchParams.get('refresh_token');
+      const type = searchParams.get('type');
 
-    if (!accessToken || !refreshToken || type !== 'recovery') {
-      setError('Invalid reset link. Please request a new password reset.');
-    }
+      console.log('URL params:', { accessToken: !!accessToken, refreshToken: !!refreshToken, type });
+
+      if (accessToken && refreshToken && type === 'recovery') {
+        try {
+          // Set the session with the tokens from the URL
+          const { data, error } = await supabase.auth.setSession({
+            access_token: accessToken,
+            refresh_token: refreshToken
+          });
+
+          if (error) {
+            console.error('Session error:', error);
+            setError('Invalid or expired reset link. Please request a new password reset.');
+          } else if (data.session) {
+            console.log('Session established successfully');
+            setIsValidToken(true);
+          }
+        } catch (err) {
+          console.error('Token validation error:', err);
+          setError('Invalid reset link. Please request a new password reset.');
+        }
+      } else {
+        setError('Invalid reset link. Please request a new password reset.');
+      }
+    };
+
+    checkTokens();
   }, [searchParams]);
 
   const handlePasswordUpdate = async (e: React.FormEvent) => {
@@ -98,6 +124,43 @@ export default function ResetPassword() {
               Your password has been successfully updated. Redirecting you to the main page...
             </CardDescription>
           </CardHeader>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!isValidToken && error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <div className="flex justify-center mb-4">
+              <Lock className="w-12 h-12 text-red-500" />
+            </div>
+            <CardTitle className="text-2xl text-red-600">Invalid Reset Link</CardTitle>
+            <CardDescription>
+              {error}
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <div className="space-y-4">
+              <Alert variant="destructive">
+                <AlertDescription>
+                  This reset link is invalid or has expired. Please request a new password reset.
+                </AlertDescription>
+              </Alert>
+              
+              <Button
+                type="button"
+                onClick={handleBackToLogin}
+                className="w-full"
+              >
+                <ArrowLeft className="w-4 h-4 mr-1" />
+                Back to Login
+              </Button>
+            </div>
+          </CardContent>
         </Card>
       </div>
     );
@@ -175,7 +238,7 @@ export default function ResetPassword() {
             <Button 
               type="submit" 
               className="w-full" 
-              disabled={isLoading}
+              disabled={isLoading || !isValidToken}
             >
               {isLoading ? 'Updating Password...' : 'Update Password'}
             </Button>

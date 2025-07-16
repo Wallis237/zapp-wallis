@@ -30,8 +30,11 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setIsLoading(true);
     
     try {
+      // Get the current origin for the redirect URL
+      const currentOrigin = window.location.origin;
+      
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
+        redirectTo: `${currentOrigin}/reset-password`,
       });
       
       if (error) throw error;
@@ -62,6 +65,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
           <p className="text-sm text-muted-foreground mb-4">
             We've sent password reset instructions to <strong>{email}</strong>. 
             Click the link in the email to reset your password.
+          </p>
+          <p className="text-xs text-muted-foreground mb-4">
+            If the email link doesn't work, you can use the "Reset Password Directly" option instead.
           </p>
         </div>
         

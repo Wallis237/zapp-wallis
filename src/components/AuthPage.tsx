@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -30,19 +29,15 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   // Check if user is coming from password reset email
   useEffect(() => {
     const checkForPasswordReset = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session) {
-        // Check if this is a password recovery session
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.get('type') === 'recovery') {
-          // Redirect to reset password page
-          window.location.href = '/reset-password' + window.location.search;
-        }
+      const urlParams = new URLSearchParams(window.location.search);
+      if (urlParams.get('type') === 'recovery') {
+        // Redirect to reset password page with all URL parameters
+        navigate('/reset-password' + window.location.search);
       }
     };
     
     checkForPasswordReset();
-  }, []);
+  }, [navigate]);
 
   const handleProfilePhotoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -304,11 +299,11 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </Button>
               </form>
               
-              <div className="mt-4 text-center">
+              <div className="mt-4 text-center space-y-2">
                 <button
                   type="button"
                   onClick={() => setIsLogin(!isLogin)}
-                  className="text-sm text-primary hover:underline"
+                  className="text-sm text-primary hover:underline block w-full"
                   disabled={isLoading}
                 >
                   {isLogin 
@@ -316,6 +311,27 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                     : 'Already have an account? Sign in'
                   }
                 </button>
+                
+                {isLogin && (
+                  <div className="flex flex-col space-y-1 pt-2 border-t">
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-primary hover:underline"
+                      disabled={isLoading}
+                    >
+                      Forgot Password? (Email Method)
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDirectPasswordReset}
+                      className="text-sm text-blue-600 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Reset Password Directly (No Email)
+                    </button>
+                  </div>
+                )}
               </div>
             </>
           )}
