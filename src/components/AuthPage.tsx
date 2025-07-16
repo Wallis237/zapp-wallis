@@ -6,12 +6,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { useToast } from '@/hooks/use-toast';
 import { MessageCircle, Eye, EyeOff, Upload } from 'lucide-react';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
+import { useNavigate } from 'react-router-dom';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
 }
 
 export function AuthPage({ onAuthSuccess }: AuthPageProps) {
+  const navigate = useNavigate();
   const [isLogin, setIsLogin] = useState(true);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
   const [email, setEmail] = useState('');
@@ -138,6 +140,10 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
     }
   };
 
+  const handleDirectPasswordReset = () => {
+    navigate('/direct-reset-password');
+  };
+
   const getTitle = () => {
     if (showForgotPassword) return 'Reset Password';
     return isLogin ? 'Welcome Back' : 'Join Chat App';
@@ -202,14 +208,22 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </div>
 
                 {isLogin && (
-                  <div className="text-right">
+                  <div className="text-right space-y-2">
                     <button
                       type="button"
                       onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-primary hover:underline"
+                      className="text-sm text-primary hover:underline block"
                       disabled={isLoading}
                     >
                       Forgot Password?
+                    </button>
+                    <button
+                      type="button"
+                      onClick={handleDirectPasswordReset}
+                      className="text-sm text-blue-600 hover:underline block"
+                      disabled={isLoading}
+                    >
+                      Reset Password Directly
                     </button>
                   </div>
                 )}
