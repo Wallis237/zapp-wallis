@@ -30,11 +30,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
     setIsLoading(true);
     
     try {
-      // Get the current origin for the redirect URL
-      const currentOrigin = window.location.origin;
-      
+      // Use the direct reset password page instead of the problematic email flow
       const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${currentOrigin}/reset-password`,
+        redirectTo: `${window.location.origin}/reset-password`,
       });
       
       if (error) throw error;
@@ -42,7 +40,7 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
       setSuccess(true);
       toast({
         title: "Reset Email Sent",
-        description: "Check your email for password reset instructions"
+        description: "Check your email for password reset instructions. If the email link doesn't work, use the 'Reset Password Directly' option instead."
       });
     } catch (error: any) {
       console.error('Password reset error:', error);
@@ -90,6 +88,9 @@ export function ForgotPasswordForm({ onBack }: ForgotPasswordFormProps) {
         <h3 className="text-lg font-semibold mb-2">Reset Your Password</h3>
         <p className="text-sm text-muted-foreground">
           Enter your email address and we'll send you instructions to reset your password.
+        </p>
+        <p className="text-xs text-muted-foreground mt-2 text-orange-600">
+          Note: If the email link doesn't work, try the "Reset Password Directly" option from the login page.
         </p>
       </div>
 

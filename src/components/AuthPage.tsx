@@ -1,12 +1,14 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useToast } from '@/hooks/use-toast';
-import { MessageCircle, Eye, EyeOff, Upload } from 'lucide-react';
+import { MessageCircle, Eye, EyeOff, Upload, AlertTriangle } from 'lucide-react';
 import { ForgotPasswordForm } from './ForgotPasswordForm';
 import { useNavigate } from 'react-router-dom';
+import { Alert, AlertDescription } from '@/components/ui/alert';
 
 interface AuthPageProps {
   onAuthSuccess: () => void;
@@ -30,9 +32,13 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
   useEffect(() => {
     const checkForPasswordReset = async () => {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get('type') === 'recovery') {
-        // Redirect to reset password page with all URL parameters
-        navigate('/reset-password' + window.location.search);
+      const fragment = window.location.hash;
+      
+      // Check both URL params and hash fragment for auth tokens
+      if (urlParams.get('type') === 'recovery' || fragment.includes('type=recovery')) {
+        console.log('Password reset detected, redirecting to reset page');
+        // Redirect to reset password page with all URL parameters and hash
+        navigate('/reset-password' + window.location.search + window.location.hash);
       }
     };
     
@@ -217,27 +223,6 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                   </div>
                 </div>
 
-                {isLogin && (
-                  <div className="text-right space-y-2">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-primary hover:underline block"
-                      disabled={isLoading}
-                    >
-                      Forgot Password?
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleDirectPasswordReset}
-                      className="text-sm text-blue-600 hover:underline block"
-                      disabled={isLoading}
-                    >
-                      Reset Password Directly
-                    </button>
-                  </div>
-                )}
-                
                 {!isLogin && (
                   <>
                     <div className="space-y-2">
@@ -313,22 +298,30 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
                 </button>
                 
                 {isLogin && (
-                  <div className="flex flex-col space-y-1 pt-2 border-t">
-                    <button
-                      type="button"
-                      onClick={() => setShowForgotPassword(true)}
-                      className="text-sm text-primary hover:underline"
-                      disabled={isLoading}
-                    >
-                      Forgot Password? (Email Method)
-                    </button>
+                  <div className="flex flex-col space-y-2 pt-2 border-t">
+                    <Alert className="mb-2">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertDescription className="text-xs">
+                        If email reset links show 404 errors, use the direct reset option below
+                      </AlertDescription>
+                    </Alert>
+                    
                     <button
                       type="button"
                       onClick={handleDirectPasswordReset}
-                      className="text-sm text-blue-600 hover:underline"
+                      className="text-sm font-medium text-blue-600 hover:underline bg-blue-50 py-2 px-4 rounded-md border border-blue-200"
                       disabled={isLoading}
                     >
-                      Reset Password Directly (No Email)
+                      Reset Password Directly (Recommended)
+                    </button>
+                    
+                    <button
+                      type="button"
+                      onClick={() => setShowForgotPassword(true)}
+                      className="text-sm text-gray-600 hover:underline"
+                      disabled={isLoading}
+                    >
+                      Reset via Email (May show 404 error)
                     </button>
                   </div>
                 )}
