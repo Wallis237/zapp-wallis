@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
@@ -93,6 +94,7 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         });
         onAuthSuccess();
       } else {
+        // Sign up without email confirmation
         const { data, error } = await supabase.auth.signUp({
           email,
           password,
@@ -106,6 +108,17 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         });
         
         if (error) throw error;
+
+        // Since email confirmation is disabled, the user should be automatically signed in
+        if (data.user && !data.session) {
+          // If for some reason there's no session, try to sign in immediately
+          const { error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password
+          });
+          
+          if (signInError) throw signInError;
+        }
 
         // Upload profile photo if provided
         if (data.user && profilePhoto) {
@@ -125,8 +138,10 @@ export function AuthPage({ onAuthSuccess }: AuthPageProps) {
         
         toast({
           title: "Success",
-          description: "Account created successfully!"
+          description: "Account created successfully! You are now logged in."
         });
+        
+        onAuthSuccess();
       }
     } catch (error: any) {
       console.error('Auth error:', error);
