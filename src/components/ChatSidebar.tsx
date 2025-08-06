@@ -7,6 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ProfileUpload } from './ProfileUpload';
 import { SettingsModal } from './SettingsModal';
 import { RoomModal } from './RoomModal';
+import { AuthPage } from './AuthPage';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useLanguage } from '@/contexts/LanguageContext';
@@ -64,6 +65,7 @@ export function ChatSidebar({
   const [isLoading, setIsLoading] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [showRoomModal, setShowRoomModal] = useState(false);
+  const [showAuth, setShowAuth] = useState(false);
   const { toast } = useToast();
   const { t } = useLanguage();
   const [allRooms, setAllRooms] = useState<Room[]>([]);
@@ -221,16 +223,14 @@ export function ChatSidebar({
               {t('app.title')}
             </h1>
             <div className="flex items-center gap-2">
-              {currentUser && (
-                <Button 
-                  variant="ghost" 
-                  size="icon"
-                  onClick={onLogout}
-                  title={t('sidebar.logout')}
-                >
-                  <LogOut className="w-5 h-5" />
-                </Button>
-              )}
+              <Button 
+                variant="ghost" 
+                size="icon"
+                onClick={currentUser ? onLogout : () => setShowAuth(true)}
+                title={currentUser ? t('sidebar.logout') : t('auth.login')}
+              >
+                <LogOut className="w-5 h-5" />
+              </Button>
               <Button 
                 variant="ghost" 
                 size="icon"
@@ -242,7 +242,7 @@ export function ChatSidebar({
             </div>
           </div>
 
-          {currentUser && (
+          {currentUser ? (
             <div className="mb-4 p-3 bg-muted rounded-lg">
               <ProfileUpload 
                 currentUser={currentUser} 
@@ -252,6 +252,17 @@ export function ChatSidebar({
                 <p className="text-sm font-medium truncate">{currentUser.display_name}</p>
                 <p className="text-xs text-muted-foreground truncate">@{currentUser.username}</p>
               </div>
+            </div>
+          ) : (
+            <div className="mb-4 p-3 bg-muted rounded-lg text-center">
+              <p className="text-sm text-muted-foreground mb-2">{t('auth.notLoggedIn')}</p>
+              <Button 
+                onClick={() => setShowAuth(true)} 
+                size="sm" 
+                className="w-full"
+              >
+                {t('auth.login')}
+              </Button>
             </div>
           )}
           
@@ -426,6 +437,22 @@ export function ChatSidebar({
         onRoomCreated={fetchRooms}
         currentUser={currentUser}
       />
+
+      {showAuth && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg max-w-md w-full max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h2 className="text-lg font-semibold">{t('auth.title')}</h2>
+              <Button variant="ghost" size="icon" onClick={() => setShowAuth(false)}>
+                <X className="w-5 h-5" />
+              </Button>
+            </div>
+            <div className="p-4">
+              <AuthPage onAuthSuccess={() => setShowAuth(false)} />
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

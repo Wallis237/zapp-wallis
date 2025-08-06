@@ -204,9 +204,6 @@ export default function Index() {
     );
   }
 
-  if (!currentUser) {
-    return <AuthPage onAuthSuccess={handleAuthSuccess} />;
-  }
 
   return (
     <div className="h-screen flex bg-background"
