@@ -119,3 +119,29 @@ ALTER TABLE public.profiles REPLICA IDENTITY FULL;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.messages;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.conversations;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.profiles;
+CREATE OR REPLACE FUNCTION public.handle_new_user()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER SET search_path = ''
+AS $$
+DECLARE
+  base_username TEXT := COALESCE(NEW.raw_user_meta_data->>'username', split_part(NEW.email, '@', 1));
+  unique_username TEXT := base_username;
+  suffix INT := 1;
+BEGIN
+  -- Ensure username is unique
+  WHILE EXISTS (SELECT 1 FROM public.profiles WHERE username = unique_username) LOOP
+    unique_username := base_username || '_' || suffix;
+    suffix := suffix + 1;
+  END LOOP;
+
+  INSERT INTO public.profiles (id, username, display_name)
+  VALUES (
+    NEW.id,
+    unique_username,
+    COALESCE(NEW.raw_user_meta_data->>'display_name', NEW.email)
+  );
+
+  RETURN NEW;
+END;
+$$;
